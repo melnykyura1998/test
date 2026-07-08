@@ -14,6 +14,12 @@ class DataRoomDatabase extends Dexie {
       folders: "id, dataroomId, parentId, createdAt, *path",
       files: "id, dataroomId, folderId, name, createdAt",
     });
+    // Version 2: add userId index to datarooms for per-user scoping
+    this.version(2).stores({
+      datarooms: "id, userId, name, createdAt",
+      folders: "id, dataroomId, parentId, createdAt, *path",
+      files: "id, dataroomId, folderId, name, createdAt",
+    });
   }
 }
 
@@ -22,20 +28,29 @@ export default db;
 
 // ─── DataRoom operations ────────────────────────────────────────────────────
 
-export async function createDataRoom(name: string): Promise<DataRoom> {
+export async function createDataRoom(userId: string, name: string): Promise<DataRoom> {
   const trimmed = name.trim();
-  const existing = await db.datarooms.filter((dr) => dr.name === trimmed).first();
+  const existing = await db.datarooms
+    .where("userId")
+    .equals(userId)
+    .filter((dr) => dr.name === trimmed)
+    .first();
   if (existing) {
     throw new Error(`A data room named "${trimmed}" already exists.`);
   }
   const now = new Date();
-  const record: DataRoom = { id: generateId(), name: trimmed, createdAt: now, updatedAt: now };
+  const record: DataRoom = { id: generateId(), userId, name: trimmed, createdAt: now, updatedAt: now };
   await db.datarooms.add(record);
   return record;
 }
 
-export async function getAllDataRooms(): Promise<DataRoom[]> {
-  return db.datarooms.orderBy("createdAt").reverse().toArray();
+export async function getAllDataRooms(userId: string): Promise<DataRoom[]> {
+  return db.datarooms
+    .where("userId")
+    .equals(userId)
+    .reverse()
+    .sortBy("createdAt")
+    .then((rows) => rows.reverse());
 }
 
 export async function updateDataRoomName(id: string, name: string): Promise<void> {

@@ -1,4 +1,5 @@
 import { LayoutGrid, List, Search, X } from "lucide-react";
+import { UserButton } from "@clerk/clerk-react";
 import { Breadcrumb } from "./Breadcrumb";
 import { Input } from "@/components/ui/input";
 import { useNavigationStore } from "@/store/navigationStore";
@@ -79,6 +80,15 @@ export function Header() {
           </button>
         </div>
       )}
+
+      {/* User avatar + sign-out */}
+      <UserButton
+        appearance={{
+          elements: {
+            avatarBox: "h-7 w-7",
+          },
+        }}
+      />
     </header>
   );
 }

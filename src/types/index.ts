@@ -1,5 +1,7 @@
 export interface DataRoom {
   id: string;
+  /** Clerk userId — scopes the data room to a single user */
+  userId: string;
   name: string;
   createdAt: Date;
   updatedAt: Date;
