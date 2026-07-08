@@ -15,6 +15,14 @@ export function PDFViewerModal({ file, onClose }: PDFViewerModalProps) {
   const [scale, setScale] = useState(1.0);
   const [rotation, setRotation] = useState(0);
 
+  const [fileUrl, setFileUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const url = URL.createObjectURL(file.blob);
+    setFileUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file.blob]);
+
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
@@ -136,8 +144,9 @@ export function PDFViewerModal({ file, onClose }: PDFViewerModalProps) {
         className="flex-1 overflow-auto flex items-start justify-center p-8"
         onClick={(e) => e.stopPropagation()}
       >
+        {fileUrl && (
         <Document
-          file={file.blob}
+          file={fileUrl}
           onLoadSuccess={onDocumentLoad}
           loading={
             <div className="flex items-center justify-center h-64 w-full">
@@ -160,6 +169,7 @@ export function PDFViewerModal({ file, onClose }: PDFViewerModalProps) {
             renderAnnotationLayer={false}
           />
         </Document>
+        )}
       </div>
     </div>
   );
