@@ -1,14 +1,8 @@
 import { useEffect, useState } from "react";
-import { Document, Page, pdfjs } from "react-pdf";
+import { Document, Page } from "react-pdf";
 import { X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCw, Download } from "lucide-react";
 import type { FileRecord } from "@/types";
 import { Button } from "@/components/ui/button";
-
-// Configure PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  "pdfjs-dist/build/pdf.worker.min.mjs",
-  import.meta.url
-).toString();
 
 interface PDFViewerModalProps {
   file: FileRecord;
@@ -20,16 +14,7 @@ export function PDFViewerModal({ file, onClose }: PDFViewerModalProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [scale, setScale] = useState(1.0);
   const [rotation, setRotation] = useState(0);
-  const [url, setUrl] = useState<string | null>(null);
 
-  // Create object URL from blob
-  useEffect(() => {
-    const objectUrl = URL.createObjectURL(file.blob);
-    setUrl(objectUrl);
-    return () => URL.revokeObjectURL(objectUrl);
-  }, [file.blob]);
-
-  // Close on Escape
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
@@ -46,10 +31,13 @@ export function PDFViewerModal({ file, onClose }: PDFViewerModalProps) {
   }
 
   function handleDownload() {
+    const url = URL.createObjectURL(file.blob);
     const a = document.createElement("a");
-    a.href = url!;
+    a.href = url;
     a.download = file.name.endsWith(".pdf") ? file.name : `${file.name}.pdf`;
     a.click();
+    // Revoke shortly after to free memory
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   return (
@@ -61,7 +49,6 @@ export function PDFViewerModal({ file, onClose }: PDFViewerModalProps) {
       >
         <span className="flex-1 text-sm font-medium text-white truncate">{file.name}</span>
 
-        {/* Page navigation */}
         {numPages > 0 && (
           <div className="flex items-center gap-1">
             <Button
@@ -90,7 +77,6 @@ export function PDFViewerModal({ file, onClose }: PDFViewerModalProps) {
 
         <div className="h-4 w-px bg-white/20" />
 
-        {/* Zoom */}
         <div className="flex items-center gap-1">
           <Button
             variant="ghost"
@@ -115,7 +101,6 @@ export function PDFViewerModal({ file, onClose }: PDFViewerModalProps) {
 
         <div className="h-4 w-px bg-white/20" />
 
-        {/* Rotate */}
         <Button
           variant="ghost"
           size="icon-sm"
@@ -125,7 +110,6 @@ export function PDFViewerModal({ file, onClose }: PDFViewerModalProps) {
           <RotateCw className="h-4 w-4" />
         </Button>
 
-        {/* Download */}
         <Button
           variant="ghost"
           size="icon-sm"
@@ -137,7 +121,6 @@ export function PDFViewerModal({ file, onClose }: PDFViewerModalProps) {
 
         <div className="h-4 w-px bg-white/20" />
 
-        {/* Close */}
         <Button
           variant="ghost"
           size="icon-sm"
@@ -153,31 +136,30 @@ export function PDFViewerModal({ file, onClose }: PDFViewerModalProps) {
         className="flex-1 overflow-auto flex items-start justify-center p-8"
         onClick={(e) => e.stopPropagation()}
       >
-        {url && (
-          <Document
-            file={url}
-            onLoadSuccess={onDocumentLoad}
-            loading={
-              <div className="flex items-center justify-center h-64 w-full">
-                <div className="h-8 w-8 animate-spin rounded-full border-2 border-white border-t-transparent" />
-              </div>
-            }
-            error={
-              <div className="flex flex-col items-center justify-center h-64 text-white/60">
-                <p className="text-sm">Failed to load PDF</p>
-              </div>
-            }
-          >
-            <Page
-              pageNumber={currentPage}
-              scale={scale}
-              rotate={rotation}
-              className="shadow-2xl"
-              renderTextLayer={false}
-              renderAnnotationLayer={false}
-            />
-          </Document>
-        )}
+        <Document
+          file={file.blob}
+          onLoadSuccess={onDocumentLoad}
+          loading={
+            <div className="flex items-center justify-center h-64 w-full">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-white border-t-transparent" />
+            </div>
+          }
+          error={
+            <div className="flex flex-col items-center justify-center h-64 text-white/60 gap-2">
+              <p className="text-sm">Failed to load PDF.</p>
+              <p className="text-xs opacity-60">Make sure the file is a valid PDF.</p>
+            </div>
+          }
+        >
+          <Page
+            pageNumber={currentPage}
+            scale={scale}
+            rotate={rotation}
+            className="shadow-2xl"
+            renderTextLayer={false}
+            renderAnnotationLayer={false}
+          />
+        </Document>
       </div>
     </div>
   );
